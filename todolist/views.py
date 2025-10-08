@@ -1,0 +1,58 @@
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from .models import Todo
+# Create your views here.
+
+
+def home(request):
+    if request.method=='POST':
+        task = request.POST.get('task')
+        new_todo =  Todo(user=request.user, name=task)
+        new_todo.save()
+
+    all_todos = Todo.objects.filter(user=request.user)
+    context = {
+        'todos': all_todos
+    }
+    return render(request, 'todoapp/todo.html',context)
+
+def register(request):
+    if request.method == 'POST':
+        username= request.POST.get('username')
+        email = request.POST.get('email')
+        password= request.POST.get('password')
+
+        if len(password)<3:
+            messages.error(request, 'Password too short')
+            return redirect('register-page')
+        
+        get_all_users_by_username= User.objects.filter(username=username)
+
+        if get_all_users_by_username:
+            messages.error(request, 'Username already exists')
+            return redirect('register-page')
+
+        new_user = User.objects.create_user(username=username, email=email, password=password)
+        new_user.save()
+        messages.success(request, 'User successfully created, login now ')
+        return redirect('login-page')
+    return render(request, 'todoapp/register.html',{})
+
+def loginpage(request):
+
+    if request.method=='POST':
+        username=request.POST.get('uname')
+        password=request.POST.get('pass')
+
+        validate_user =authenticate(username=username, password=password)
+        if validate_user is not None:
+            login(request, validate_user)
+            return redirect('home-page')
+        else:
+            messages.error(request, 'User does not exist')
+            return redirect('login-page')
+
+
+    return render(request, 'todoapp/login.html',{})
